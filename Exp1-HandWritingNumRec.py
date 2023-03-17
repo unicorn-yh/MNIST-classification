@@ -9,6 +9,7 @@ from numpy import asarray
 import numpy as np
 from keras.utils import np_utils
 from torch.utils.data import TensorDataset
+import glob
 
 class HandWritingNumberRecognize_Dataset(Dataset):
     def __init__(self,type):
@@ -27,7 +28,7 @@ class HandWritingNumberRecognize_Dataset(Dataset):
 
         if index == 0:
             self.Y = np.loadtxt("dataset/train/labels_train.txt")
-            self.Y = torch.tensor(np.array(self.Y))
+            self.Y = torch.tensor(np.array(self.Y)).long()
             if os.path.exists("dataset/train_X.txt"):
                 self.X = np.loadtxt("dataset/train_X.txt")
                 self.X = np.array(self.X)    #(39923, 28, 28)
@@ -36,9 +37,10 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 return TensorDataset(self.X, self.Y)
             else:
                 path = "dataset/train/images/"
+                keyword = "train_"
         elif index == 1:
             self.Y = np.loadtxt("dataset/val/labels_val.txt")
-            self.Y = torch.tensor(np.array(self.Y))
+            self.Y = torch.tensor(np.array(self.Y)).long()
             if os.path.exists("dataset/val_X.txt"):
                 self.X = np.loadtxt("dataset/val_X.txt")
                 self.X = np.array(self.X)        #(13821, 28, 28)
@@ -47,8 +49,8 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 return TensorDataset(self.X, self.Y)
             else:
                 path = "dataset/val/images/"
+                keyword = "val_"
         elif index == 2:
-            #self.Y = torch.tensor(np.array(self.Y))
             if os.path.exists("dataset/test_X.txt"):
                 self.X = np.loadtxt("dataset/test_X.txt")
                 self.X = np.array(self.X)      #(16256, 28, 28)
@@ -57,24 +59,28 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 return TensorDataset(self.X)
             else:
                 path = "dataset/test/images/"
+                keyword = "test_"
 
 
         if not path == "":
-            dir_list = os.listdir(path)
+            dir_list =  os.listdir(path)
+            imgs = [os.path.join(path,img) for img in dir_list]
+            imgs.sort(key = lambda x: int(x.replace(path+keyword,'').split('.')[0]))
+            print(imgs[:20])
             i = 0
-            for file in dir_list:
+            for file in imgs:
                 i += 1
-                image = Image.open(path+file)
+                image = Image.open(file)
                 npdata = asarray(image)
                 if index == 0:
                     self.X.append(npdata)
-                    print("Getting train data {0}/{1}".format(i,len(dir_list)),end="\r")
+                    print(file,end='\r')
                 elif index == 1:
                     self.X.append(npdata)
-                    print("Getting val data {0}/{1}".format(i,len(dir_list)),end="\r")
+                    print(file,end='\r')
                 elif index == 2:
                     self.X.append(npdata)
-                    print("Getting test data {0}/{1}".format(i,len(dir_list)),end="\r")
+                    print(file,end='\r')
         
             self.X = np.array(self.X) 
             X = self.X.reshape(self.X.shape[0],-1)
@@ -84,6 +90,7 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 np.savetxt("dataset/val_X.txt",X,fmt="%s")
             elif index == 2:
                 np.savetxt("dataset/test_X.txt",X,fmt="%s")
+                return TensorDataset(self.X)
             self.X = torch.tensor(self.X)
             return TensorDataset(self.X, self.Y)
                 
@@ -97,54 +104,65 @@ class HandWritingNumberRecognize_Network(torch.nn.Module):
     def __init__(self):
         super(HandWritingNumberRecognize_Network, self).__init__()
         # 此处添加网络的相关结构，下面的pass不必保留
-        self.conv2d = nn.Conv2d(28, 33, 3, stride=2)
+        self.conv1 = nn.Sequential(         
+            nn.Conv2d(
+                in_channels=28,              
+                out_channels=16,            
+                kernel_size=5,              
+                stride=1,                   
+                padding=2,                  
+            ),                              
+            nn.ReLU(),                      
+            nn.MaxPool2d(kernel_size=1),    
+        )
+        self.conv2 = nn.Sequential(         
+            nn.Conv2d(16, 32, 5, 1, 2),     
+            nn.ReLU(),                      
+            nn.MaxPool2d(1),                
+        )
+        self.out = nn.Linear(32 * 28, 10)
+
+        '''self.fc1 = nn.Linear(28,64)
+        self.fc2 = nn.Linear(64,100)
+        self.fc3 = nn.Linear(100,10)
         self.relu = nn.ReLU()
-        self.maxpool2d = nn.MaxPool2d(2)
-        self.dropout = nn.Dropout(0.25)
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(33,100)
-        self.fc2 = nn.Linear(100,10)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax()'''
 
-    def forward(self, input_data):
+    def forward(self, x):
         # 此处添加模型前馈函数的内容，return函数需自行修改
-        input_data = self.conv2d(input_data)
-        input_data = self.relu(input_data)
-
-        '''input_data = self.conv2d(input_data)
-        input_data = self.relu(input_data)
-        input_data = self.maxpool2d(input_data)
-        input_data = self.dropout(input_data)
-        
-        input_data = self.conv2d(input_data)
-        input_data = self.relu(input_data)'''
-        input_data = self.maxpool2d(input_data)
-        input_data = self.dropout(input_data)
-
-        input_data = self.flatten(input_data)
-
-        # hidden layer
-        input_data = self.fc1(input_data)
-        input_data = self.relu(input_data)
-        input_data = self.fc2(input_data)
-        input_data = self.softmax(input_data)
-        return input_data
+    
+        x = self.conv1(x)
+        x = self.conv2(x)
+        # flatten the output of conv2 to (batch_size, 32 * 7 * 7)
+        x = x.view(x.size(0), -1)       
+        output = self.out(x)
+        return output    # return x for visualization
+        '''x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.relu(x)
+        x = self.fc3(x)
+        return x'''
 
 
 def validation():
     # 验证函数，任务是在训练经过一定的轮数之后，对验证集中的数据进行预测并与真实结果进行比对，生成当前模型在验证集上的准确率
     correct = 0
-    total = 0
+    total = len(dataset_val)
     accuracy = 0
     with torch.no_grad():  # 该函数的意义需在实验报告中写明
         for data in data_loader_val:
             images, true_labels = data
-            # 在这一部分撰写验证的内容，下面两行不必保留
-            print(images, true_labels)
-            pass
+            images, true_labels = preprocess(images, true_labels)
+            y_hat = model(images)
+            # 取分类概率最大的类别作为预测的类别
+            y_hat = torch.tensor([torch.argmax(_) for _ in y_hat]).to(device)
+            correct += torch.sum(y_hat == true_labels).float()
+        correct = correct.item()
+        accuracy = correct / total
 
-    print("验证集数据总量：", total, "预测正确的数量：", correct)
-    print("当前模型在验证集上的准确率为：", accuracy)
+    print("验证集数据总量：{}, 预测正确的数量：{:.0f}".format(total,correct))
+    print("当前模型在验证集上的准确率为：{:.4f}".format(accuracy))
 
 
 def alltest():
@@ -155,6 +173,9 @@ def alltest():
 
 def train(epoch_num):
     # 循环外可以自行添加必要内容
+    sum_true = 0
+    sum_loss = 0.0
+    i = 0
     for index, data in enumerate(data_loader_train, 0):
         images, true_labels = data
 
@@ -170,19 +191,19 @@ def train(epoch_num):
         y_hat = torch.tensor([torch.argmax(_) for _ in y_hat]).to(device)
         sum_true += torch.sum(y_hat == true_labels).float()
         sum_loss += loss.item()
-    
+
+    sum_true = sum_true.item()
     train_acc = sum_true / len(dataset_train)
     train_loss = sum_loss / (len(dataset_train) / 64)    # batch size = 64
-    print(train_acc,train_loss)
+    print("Epoch {}, Train Accuracy: {:.4f}, Train Loss: {:.4f}".format(epoch_num+1, train_acc,train_loss))
 
 
 def preprocess(X,Y):
     # Flattening the images from the 28x28 pixels to 1D 784 pixels
     X = X.reshape(X.shape[0],28,28,1)
     X /= 255
-    n_classes = 10
-    Y = np_utils.to_categorical(Y, n_classes)
-    print("Shape after one-hot encoding: ", Y.shape)
+    '''n_classes = 10
+    Y = np_utils.to_categorical(Y, n_classes)'''
     return X,Y
 
 if __name__ == "__main__":
@@ -201,15 +222,15 @@ if __name__ == "__main__":
     # 初始化模型对象，可以对其传入相关参数
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(device)
-    model = HandWritingNumberRecognize_Network().to(device)
+    model = HandWritingNumberRecognize_Network().to(device).double()
 
     # 损失函数设置
     loss_function = nn.CrossEntropyLoss()  # torch.nn中的损失函数进行挑选，并进行参数设置
 
     # 优化器设置
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=5e-4)  # torch.optim中的优化器进行挑选，并进行参数设置
-    max_epoch = 1  # 自行设置训练轮数
-    num_val = 2  # 经过多少轮进行验证
+    max_epoch = 10  # 自行设置训练轮数
+    num_val = 1  # 经过多少轮进行验证
 
     # 然后开始进行训练
     for epoch in range(max_epoch):
