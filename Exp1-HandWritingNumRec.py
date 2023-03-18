@@ -2,14 +2,11 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-import torch.nn.functional as neural_funcs
 import os
 from PIL import Image
 from numpy import asarray
 import numpy as np
-from keras.utils import np_utils
 from torch.utils.data import TensorDataset
-import glob
 
 class HandWritingNumberRecognize_Dataset(Dataset):
     def __init__(self,type):
@@ -51,12 +48,14 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 path = "dataset/val/images/"
                 keyword = "val_"
         elif index == 2:
+            self.Y = np.zeros(16256)
+            self.Y = torch.tensor(np.array(self.Y)).long()
             if os.path.exists("dataset/test_X.txt"):
                 self.X = np.loadtxt("dataset/test_X.txt")
                 self.X = np.array(self.X)      #(16256, 28, 28)
                 self.X = self.X.reshape(self.X.shape[0],28,28)
                 self.X = torch.tensor(self.X)
-                return TensorDataset(self.X)
+                return TensorDataset(self.X, self.Y)
             else:
                 path = "dataset/test/images/"
                 keyword = "test_"
@@ -66,7 +65,6 @@ class HandWritingNumberRecognize_Dataset(Dataset):
             dir_list =  os.listdir(path)
             imgs = [os.path.join(path,img) for img in dir_list]
             imgs.sort(key = lambda x: int(x.replace(path+keyword,'').split('.')[0]))
-            print(imgs[:20])
             i = 0
             for file in imgs:
                 i += 1
@@ -90,7 +88,6 @@ class HandWritingNumberRecognize_Dataset(Dataset):
                 np.savetxt("dataset/val_X.txt",X,fmt="%s")
             elif index == 2:
                 np.savetxt("dataset/test_X.txt",X,fmt="%s")
-                return TensorDataset(self.X)
             self.X = torch.tensor(self.X)
             return TensorDataset(self.X, self.Y)
                 
@@ -103,46 +100,28 @@ class HandWritingNumberRecognize_Dataset(Dataset):
 class HandWritingNumberRecognize_Network(torch.nn.Module):
     def __init__(self):
         super(HandWritingNumberRecognize_Network, self).__init__()
-        # 此处添加网络的相关结构，下面的pass不必保留
+        # 此处添加网络的相关结构
         self.conv1 = nn.Sequential(         
-            nn.Conv2d(
-                in_channels=28,              
-                out_channels=16,            
-                kernel_size=5,              
-                stride=1,                   
-                padding=2,                  
-            ),                              
+            nn.Conv2d(in_channels=28, out_channels=16, kernel_size=5, stride=1, padding=2),                              
             nn.ReLU(),                      
             nn.MaxPool2d(kernel_size=1),    
         )
         self.conv2 = nn.Sequential(         
-            nn.Conv2d(16, 32, 5, 1, 2),     
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=1, padding=2),     
             nn.ReLU(),                      
-            nn.MaxPool2d(1),                
+            nn.MaxPool2d(kernel_size=1),                
         )
-        self.out = nn.Linear(32 * 28, 10)
+        self.fc = nn.Linear(32*28, 10)
 
-        '''self.fc1 = nn.Linear(28,64)
-        self.fc2 = nn.Linear(64,100)
-        self.fc3 = nn.Linear(100,10)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax()'''
 
-    def forward(self, x):
+    def forward(self, input_data):
         # 此处添加模型前馈函数的内容，return函数需自行修改
-    
-        x = self.conv1(x)
-        x = self.conv2(x)
-        # flatten the output of conv2 to (batch_size, 32 * 7 * 7)
-        x = x.view(x.size(0), -1)       
-        output = self.out(x)
-        return output    # return x for visualization
-        '''x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
-        return x'''
+        input_data = self.conv1(input_data)
+        input_data = self.conv2(input_data)
+        # flatten the output of conv2 to (batch_size, 32 * 28)
+        input_data = input_data.view(input_data.size(0), -1)       
+        output = self.fc(input_data)
+        return output   
 
 
 def validation():
@@ -153,14 +132,13 @@ def validation():
     with torch.no_grad():  # 该函数的意义需在实验报告中写明
         for data in data_loader_val:
             images, true_labels = data
-            images, true_labels = preprocess(images, true_labels)
+            images = preprocess(images)
             y_hat = model(images)
             # 取分类概率最大的类别作为预测的类别
             y_hat = torch.tensor([torch.argmax(_) for _ in y_hat]).to(device)
             correct += torch.sum(y_hat == true_labels).float()
         correct = correct.item()
         accuracy = correct / total
-
     print("验证集数据总量：{}, 预测正确的数量：{:.0f}".format(total,correct))
     print("当前模型在验证集上的准确率为：{:.4f}".format(accuracy))
 
@@ -168,21 +146,32 @@ def validation():
 def alltest():
     # 测试函数，需要完成的任务有：根据测试数据集中的数据，逐个对其进行预测，生成预测值。
     # 将结果按顺序写入txt文件中，下面一行不必保留
-    pass
-
+    y_pred = []
+    for index, data in enumerate(data_loader_test, 0):
+        images, _ = data
+        images = preprocess(images)
+        y_hat = model(images)   # 模型预测
+        optimizer.zero_grad()   # 梯度清零
+        optimizer.step()        # 更新参数
+        y_hat = torch.tensor([torch.argmax(_) for _ in y_hat]).to(device)
+        y_hat = y_hat.tolist()
+        y_pred.append(y_hat)
+    y_pred = np.array(y_pred)
+    np.savetxt("result/test_Y.txt",y_pred,fmt="%s")
+    print('\nTest Labels Prediction successfully saved in result/test_pred.txt')
+    
 
 def train(epoch_num):
     # 循环外可以自行添加必要内容
     sum_true = 0
     sum_loss = 0.0
-    i = 0
     for index, data in enumerate(data_loader_train, 0):
         images, true_labels = data
 
         # 该部分添加训练的主要内容
         # 必要的时候可以添加损失函数值的信息，即训练到现在的平均损失或最后一次的损失，下面两行不必保留
         
-        images, true_labels = preprocess(images, true_labels)
+        images = preprocess(images)
         y_hat = model(images)   # 模型预测
         loss = loss_function(y_hat, true_labels)
         optimizer.zero_grad()   # 梯度清零
@@ -198,13 +187,11 @@ def train(epoch_num):
     print("Epoch {}, Train Accuracy: {:.4f}, Train Loss: {:.4f}".format(epoch_num+1, train_acc,train_loss))
 
 
-def preprocess(X,Y):
+def preprocess(X):
     # Flattening the images from the 28x28 pixels to 1D 784 pixels
     X = X.reshape(X.shape[0],28,28,1)
     X /= 255
-    '''n_classes = 10
-    Y = np_utils.to_categorical(Y, n_classes)'''
-    return X,Y
+    return X
 
 if __name__ == "__main__":
 
@@ -229,8 +216,8 @@ if __name__ == "__main__":
 
     # 优化器设置
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=5e-4)  # torch.optim中的优化器进行挑选，并进行参数设置
-    max_epoch = 10  # 自行设置训练轮数
-    num_val = 1  # 经过多少轮进行验证
+    max_epoch = 5  # 自行设置训练轮数
+    num_val = 1    # 经过多少轮进行验证
 
     # 然后开始进行训练
     for epoch in range(max_epoch):
