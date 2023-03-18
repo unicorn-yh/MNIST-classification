@@ -157,7 +157,7 @@ def alltest():
         y_hat = y_hat.tolist()
         y_pred.append(y_hat)
     y_pred = np.array(y_pred)
-    np.savetxt("result/test_Y.txt",y_pred,fmt="%s")
+    np.savetxt("result/test_pred.txt",y_pred,fmt="%s")
     print('\nTest Labels Prediction successfully saved in result/test_pred.txt')
     
 
