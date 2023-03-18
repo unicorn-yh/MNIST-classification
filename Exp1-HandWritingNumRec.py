@@ -23,7 +23,8 @@ class HandWritingNumberRecognize_Dataset(Dataset):
         path = ""
         self.X,self.Y = [],[]
 
-        if index == 0:
+        # 加载数据
+        if index == 0:   
             self.Y = np.loadtxt("dataset/train/labels_train.txt")
             self.Y = torch.tensor(np.array(self.Y)).long()
             if os.path.exists("dataset/train_X.txt"):
@@ -97,10 +98,9 @@ class HandWritingNumberRecognize_Dataset(Dataset):
         return len(self.X)
 
 
-class HandWritingNumberRecognize_Network(torch.nn.Module):
+class HandWritingNumberRecognize_Network(torch.nn.Module):  #定义卷积神经网络
     def __init__(self):
         super(HandWritingNumberRecognize_Network, self).__init__()
-        # 此处添加网络的相关结构
         self.conv1 = nn.Sequential(         
             nn.Conv2d(in_channels=28, out_channels=16, kernel_size=5, stride=1, padding=2),                              
             nn.ReLU(),                      
@@ -113,13 +113,10 @@ class HandWritingNumberRecognize_Network(torch.nn.Module):
         )
         self.fc = nn.Linear(32*28, 10)
 
-
     def forward(self, input_data):
-        # 此处添加模型前馈函数的内容，return函数需自行修改
         input_data = self.conv1(input_data)
         input_data = self.conv2(input_data)
-        # flatten the output of conv2 to (batch_size, 32 * 28)
-        input_data = input_data.view(input_data.size(0), -1)       
+        input_data = input_data.view(input_data.size(0), -1)  # 将卷积层的输出展平成(批次大小，3228)的大小   
         output = self.fc(input_data)
         return output   
 
@@ -129,7 +126,7 @@ def validation():
     correct = 0
     total = len(dataset_val)
     accuracy = 0
-    with torch.no_grad():  # 该函数的意义需在实验报告中写明
+    with torch.no_grad():  # 该函数表示不计算梯度，从而减少计算的内存消耗
         for data in data_loader_val:
             images, true_labels = data
             images = preprocess(images)
@@ -186,8 +183,7 @@ def train(epoch_num):
     print("Epoch {}, Train Accuracy: {:.4f}, Train Loss: {:.4f}".format(epoch_num+1, train_acc,train_loss))
 
 
-def preprocess(X):
-    # Flattening the images from the 28x28 pixels to 1D 784 pixels
+def preprocess(X):   # 对数据集进行预处理，使得其作为CNN的输入
     X = X.reshape(X.shape[0],28,28,1)
     X /= 255
     return X
@@ -207,7 +203,6 @@ if __name__ == "__main__":
 
     # 初始化模型对象，可以对其传入相关参数
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    print(device)
     model = HandWritingNumberRecognize_Network().to(device).double()
 
     # 损失函数设置
