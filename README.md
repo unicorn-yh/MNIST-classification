@@ -1,7 +1,7 @@
 # MNIST-classification
  classification of MNIST using SVM, MLP and CNN
 
-
+<br>
 
 ## CNN Result
 
