@@ -1,7 +1,7 @@
 # MNIST-classification
  classification of MNIST using SVM, MLP and CNN
 
-
+<br>
 
 ## CNN Result
 
@@ -28,7 +28,7 @@
 
 <br>
 
-## MLP Result
+## DNN Result
 
 | Train Result                                           | ![image-20230402144324650](README/image-20230402144324650.png) |
 | ------------------------------------------------------ | ------------------------------------------------------------ |
