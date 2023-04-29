@@ -108,10 +108,6 @@ class SGDOptimizer1():
                 break
 
 
-    
-
-
-
 # 手动定义优化器
 class SGDOptimizer2():
     def __init__(self, model, lr=LEARNING_RATE, epsilon=EPSILON, eta=ETA):
@@ -238,7 +234,7 @@ train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 
-Network = Sequential([
+'''Network = Sequential([
     Linear(28*28,256),
     ReLU(),
     Linear(256,128),
@@ -246,17 +242,17 @@ Network = Sequential([
     Linear(128,10),
     Softmax()],
     LossMSE()
-)
+)'''
 
-'''Network = nn.Sequential(
+Network = nn.Sequential(
     nn.Linear(28*28,256),
     nn.ReLU(),
     nn.Linear(256,128),
     nn.ReLU(),
     nn.Linear(128,10)
-)'''
+)
 
-#loss_func = nn.CrossEntropyLoss()
-#optimizer = SGD(Network.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+loss_func = nn.CrossEntropyLoss()
+optimizer = SGD(Network.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
 #optimizer = SGDOptimizer(Network, lr=LEARNING_RATE)
 train()
