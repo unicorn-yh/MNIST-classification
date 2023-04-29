@@ -1,0 +1,13 @@
+================== Starting Training ==================
+epoch:0, train acc:0.8137, loss:0.0091, test acc:0.9495
+epoch:1, train acc:0.9608, loss:0.0020, test acc:0.9673
+epoch:2, train acc:0.9746, loss:0.0013, test acc:0.9722
+epoch:3, train acc:0.9810, loss:0.0010, test acc:0.9742
+epoch:4, train acc:0.9861, loss:0.0007, test acc:0.9723
+epoch:5, train acc:0.9894, loss:0.0005, test acc:0.9794
+epoch:6, train acc:0.9922, loss:0.0004, test acc:0.9810
+epoch:7, train acc:0.9938, loss:0.0003, test acc:0.9766
+epoch:8, train acc:0.9955, loss:0.0002, test acc:0.9818
+epoch:9, train acc:0.9967, loss:0.0002, test acc:0.9819
+
+
