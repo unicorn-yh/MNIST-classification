@@ -48,6 +48,6 @@
 
 | Net   | Iteration                                                    | Result                                                       |
 | :-----: | :------------------------------------------------------------: | :------------------------------------------------------------: |
-| GAN   | <img src="README/image-20230530142527172.png" alt="image-20230530142527172" style="zoom:80%;" /> | <img src="README/image-20230530142501911.png" alt="image-20230530142501911" style="zoom:140%;" /> |
-| DCGAN | ![image-20230530153213930](README/image-20230530153213930.png) | <img src="README/image-20230530152300968.png" alt="image-20230530152300968" style="zoom: 30%;" /> |
+| GAN   | <img src="README/image-20230530142527172.png" alt="image-20230530142527172" style="zoom:80%;" /> | <img src="README/image-20230530142501911.png" alt="image-20230530142501911"  /> |
+| DCGAN | ![image-20230530153213930](README/image-20230530153213930.png) | ![image-20230530154118617](README/image-20230530154118617.png) |
 
