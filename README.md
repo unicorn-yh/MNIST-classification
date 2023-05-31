@@ -46,7 +46,7 @@
 
 ## GAN image generation
 
-| Net   | Iteration                                                    | Result                                                       |
+| Net | Iteration                                                    | Result                                                       |
 | :-----: | :------------------------------------------------------------: | :------------------------------------------------------------: |
 | GAN   | <img src="README/image-20230530142527172.png" alt="image-20230530142527172" style="zoom:80%;" /> | <img src="README/image-20230530142501911.png" alt="image-20230530142501911"  /> |
 | DCGAN | ![image-20230530153213930](README/image-20230530153213930.png) | ![image-20230530154118617](README/image-20230530154118617.png) |
